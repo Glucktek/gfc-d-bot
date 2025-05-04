@@ -33,12 +33,12 @@ func main() {
 	// if err := client.StartInstance(ctx, instanceName); err != nil {
 	// 	log.Fatal(err)
 	// }
-	//
-	// // Stop instance
+
+	// Stop instance
 	// if err := client.StopInstance(ctx, instanceName); err != nil {
 	// 	log.Fatal(err)
 	// }
-	//
+
 	// // Reboot instance
 	// if err := client.RebootInstance(ctx, instanceName); err != nil {
 	// 	log.Fatal(err)

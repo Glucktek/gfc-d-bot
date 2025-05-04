@@ -32,7 +32,6 @@ func (c *Client) StartInstance(ctx context.Context, instanceName string) error {
 func (c *Client) StopInstance(ctx context.Context, instanceName string) error {
 	_, err := c.ls.StopInstance(ctx, &lightsail.StopInstanceInput{
 		InstanceName: &instanceName,
-		Force:        false,
 	})
 	return err
 }
