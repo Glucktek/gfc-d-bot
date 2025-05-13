@@ -1,12 +1,17 @@
 package bot
 
 import (
+	"context"
 	"fmt"
+	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/bwmarrin/discordgo"
+
+	"github.com/glucktek/gfc-d-bot/pkgs/lightsail"
 )
 
 type Bot struct {
@@ -70,6 +75,11 @@ var commands = []*discordgo.ApplicationCommand{
 						Description: "Get server status",
 						Type:        discordgo.ApplicationCommandOptionSubCommand,
 					},
+					{
+						Name:        "check-website",
+						Description: "Check if the website is returning a 200 success code",
+						Type:        discordgo.ApplicationCommandOptionSubCommand,
+					},
 				},
 			},
 			{
@@ -80,11 +90,6 @@ var commands = []*discordgo.ApplicationCommand{
 					{
 						Name:        "status",
 						Description: "Check bot status",
-						Type:        discordgo.ApplicationCommandOptionSubCommand,
-					},
-					{
-						Name:        "ping",
-						Description: "Check bot latency",
 						Type:        discordgo.ApplicationCommandOptionSubCommand,
 					},
 				},
@@ -106,6 +111,16 @@ func (b *Bot) handleCommands(s *discordgo.Session, i *discordgo.InteractionCreat
 		return
 	}
 
+	// Initialize the Lightsail client
+	client, err := lightsail.NewClient()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	ctx := context.Background()
+	// HACK: Using hardcaded instance name for now
+	instanceName := "GreaterFaithChurchSite"
+
 	data := i.ApplicationCommandData()
 
 	if data.Name == "gfcbot" {
@@ -116,37 +131,106 @@ func (b *Bot) handleCommands(s *discordgo.Session, i *discordgo.InteractionCreat
 		case "server":
 			switch subcommand {
 			case "start":
+				//Start instance
+				if err := client.StartInstance(ctx, instanceName); err != nil {
+					fmt.Println("Error starting instance:", err)
+					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+						Type: discordgo.InteractionResponseChannelMessageWithSource,
+						Data: &discordgo.InteractionResponseData{
+							Content: "❌ Failed to start the server: " + err.Error(),
+						},
+					})
+					return
+				}
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
 					Data: &discordgo.InteractionResponseData{
-						Content: "🚀 Starting server...",
+						Content: "✅ Server start command successfully sent!",
 					},
 				})
+				return
 
 			case "stop":
+				if err := client.StopInstance(ctx, instanceName); err != nil {
+					fmt.Println("Error stopping instance:", err)
+					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+						Type: discordgo.InteractionResponseChannelMessageWithSource,
+						Data: &discordgo.InteractionResponseData{
+							Content: "❌ Failed to stop the server: " + err.Error(),
+						},
+					})
+					return
+				}
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
 					Data: &discordgo.InteractionResponseData{
-						Content: "🛑 Stopping server...",
+						Content: "✅ Server stop command successfully sent, Please wait 5 minutes!",
 					},
 				})
+				return
 
 			case "reboot":
+				if err := client.RebootInstance(ctx, instanceName); err != nil {
+					fmt.Println("Error rebooting instance:", err)
+					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+						Type: discordgo.InteractionResponseChannelMessageWithSource,
+						Data: &discordgo.InteractionResponseData{
+							Content: "❌ Failed to reboot the server: " + err.Error(),
+						},
+					})
+					return
+				}
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
 					Data: &discordgo.InteractionResponseData{
-						Content: "Rebooting server...",
+						Content: "✅ Server rebooted successfully, please wait 5 mins and check status again!",
 					},
 				})
+				return
 
 			case "status":
-
+				// Get status
+				state, err := client.GetInstanceState(ctx, instanceName)
+				if err != nil {
+					log.Fatal(err)
+				}
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
 					Data: &discordgo.InteractionResponseData{
-						Content: "Checking server status...",
+						Content: "Current Instance state: " + state,
 					},
 				})
+
+			case "check-website":
+				// Check website status
+				websiteURL := "https://greaterfaithchurch.org"
+				resp, err := http.Get(websiteURL)
+				if err != nil {
+					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+						Type: discordgo.InteractionResponseChannelMessageWithSource,
+						Data: &discordgo.InteractionResponseData{
+							Content: "❌ Failed to reach the website: \n" + err.Error(),
+						},
+					})
+					return
+				}
+				defer resp.Body.Close()
+
+				if resp.StatusCode == 200 {
+					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+						Type: discordgo.InteractionResponseChannelMessageWithSource,
+						Data: &discordgo.InteractionResponseData{
+							Content: "✅ Website is up\nreturned a 200 success code!",
+						},
+					})
+				} else {
+					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+						Type: discordgo.InteractionResponseChannelMessageWithSource,
+						Data: &discordgo.InteractionResponseData{
+							Content: fmt.Sprintf("⚠️ Website returned a non-200 status code: \n%d", resp.StatusCode),
+						},
+					})
+				}
 			}
 
 		case "bot":
@@ -156,14 +240,6 @@ func (b *Bot) handleCommands(s *discordgo.Session, i *discordgo.InteractionCreat
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
 					Data: &discordgo.InteractionResponseData{
 						Content: "🟢 Bot is running normally!",
-					},
-				})
-
-			case "ping":
-				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-					Type: discordgo.InteractionResponseChannelMessageWithSource,
-					Data: &discordgo.InteractionResponseData{
-						Content: "🏓 Pong!",
 					},
 				})
 			}
