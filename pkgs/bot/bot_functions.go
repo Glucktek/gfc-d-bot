@@ -135,15 +135,16 @@ func (b *Bot) handleCommands(s *discordgo.Session, i *discordgo.InteractionCreat
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
 					Data: &discordgo.InteractionResponseData{
-						Content: "🔄 Rebooting server...",
+						Content: "Rebooting server...",
 					},
 				})
 
 			case "status":
+
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
 					Data: &discordgo.InteractionResponseData{
-						Content: "📊 Checking server status...",
+						Content: "Checking server status...",
 					},
 				})
 			}
