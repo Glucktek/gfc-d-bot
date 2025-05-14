@@ -236,6 +236,7 @@ func (b *Bot) handleCommands(s *discordgo.Session, i *discordgo.InteractionCreat
 		case "bot":
 			switch subcommand {
 			case "status":
+				fmt.Println("Status command recieved: Bot is running normally")
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
 					Data: &discordgo.InteractionResponseData{
