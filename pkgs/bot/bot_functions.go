@@ -220,7 +220,7 @@ func (b *Bot) handleCommands(s *discordgo.Session, i *discordgo.InteractionCreat
 					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 						Type: discordgo.InteractionResponseChannelMessageWithSource,
 						Data: &discordgo.InteractionResponseData{
-							Content: "✅ Website is up\nreturned a 200 success code!",
+							Content: "✅ Website is up returned a 200 success code!",
 						},
 					})
 				} else {

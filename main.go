@@ -16,7 +16,7 @@ func main() {
 	guildID := os.Getenv("DISCORD_GUILD_ID")
 
 	//Pre flight check
-	if token == "" || len(adminRole) == 0 || guildID == "" {
+	if token == "" || adminRole == "" || guildID == "" {
 		log.Fatal("Missing required environment variables")
 	}
 
